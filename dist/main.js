@@ -51495,70 +51495,77 @@ return a / b;`;
   }
 
   // index.ts
-  loadLayersModel("./mnistModel.h5").then((model2) => {
-    let predictBtn = document.getElementById("predict");
+  loadLayersModel("./outputModel2/model.json").then((model2) => {
     let output = document.getElementById("output");
-    predictBtn.addEventListener("click", () => {
-      output.outerText = model2.predict(getImageArray());
+    function showPredictions() {
+      let tensor2 = tensor(getImageArray()).reshape([1, 28, 28, 1]);
+      let result = model2.predict(tensor2).arraySync()[0];
+      let maxResult = Math.max(...result);
+      let resultString = result.map((n, i) => (n == maxResult ? "<b>" : "") + i + " : " + Number(n).toLocaleString(void 0, { style: "percent", minimumFractionDigits: 2 }) + (n == maxResult ? "</b>" : "")).join("      \r\n");
+      output.innerHTML = resultString;
+    }
+    let checkboxes = [];
+    document.querySelector(".grid").innerHTML = "";
+    for (let i = 0; i < 28 * 28; i++) {
+      let checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkboxes.push(checkbox);
+      document.querySelector(".grid").appendChild(checkbox);
+    }
+    showPredictions();
+    let isMouseDown = false;
+    document.addEventListener("mousedown", function() {
+      isMouseDown = true;
     });
-  });
-  var checkboxes = [];
-  for (let i = 0; i < 28 * 28; i++) {
-    let checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkboxes.push(checkbox);
-    document.querySelector(".grid").appendChild(checkbox);
-  }
-  var isMouseDown = false;
-  document.addEventListener("mousedown", function() {
-    isMouseDown = true;
-  });
-  document.addEventListener("mouseup", function() {
-    isMouseDown = false;
-  });
-  for (let i = 0; i < checkboxes.length; i++) {
-    checkboxes[i].addEventListener("mouseover", function() {
-      if (isMouseDown) {
-        this.checked = true;
-        if (i + 1 < 28 * 28)
-          checkboxes[i + 1].checked = true;
-        if (i - 28 >= 0)
-          checkboxes[i - 28].checked = true;
-      }
+    document.addEventListener("mouseup", function() {
+      isMouseDown = false;
     });
-  }
-  var clearBtn = document.getElementById("clear");
-  clearBtn.addEventListener("click", () => {
     for (let i = 0; i < checkboxes.length; i++) {
-      checkboxes[i].checked = false;
+      checkboxes[i].addEventListener("mouseover", function() {
+        if (isMouseDown) {
+          this.checked = true;
+          if (i + 1 < 28 * 28)
+            checkboxes[i + 1].checked = true;
+          if (i - 28 >= 0)
+            checkboxes[i - 28].checked = true;
+          showPredictions();
+        }
+      });
     }
-  });
-  async function copyToClipboard(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      console.log("Text copied to clipboard");
-    } catch (err) {
-      console.error("Failed to copy text: ", err);
-    }
-  }
-  var exportBtn = document.getElementById("export");
-  exportBtn.addEventListener("click", () => {
-    let numpyArray = getImageArray();
-    let numpyArrayString = "np.array([\n" + numpyArray.map((row) => "  " + JSON.stringify(row)).join(",\n") + "\n])\n";
-    copyToClipboard(numpyArrayString);
-  });
-  function getImageArray() {
-    let numpyArray = [];
-    for (let i = 0; i < 28; i++) {
-      let row = [];
-      for (let j = 0; j < 28; j++) {
-        let checkboxIndex = i * 28 + j;
-        row.push(checkboxes[checkboxIndex].checked ? 1 : 0);
+    let clearBtn = document.getElementById("clear");
+    clearBtn.addEventListener("click", () => {
+      for (let i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
       }
-      numpyArray.push(row);
+      showPredictions();
+    });
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        console.log("Text copied to clipboard");
+      } catch (err) {
+        console.error("Failed to copy text: ", err);
+      }
     }
-    return numpyArray;
-  }
+    let exportBtn = document.getElementById("export");
+    exportBtn.addEventListener("click", () => {
+      let numpyArray = getImageArray();
+      let numpyArrayString = "np.array([\n" + numpyArray.map((row) => "  " + JSON.stringify(row)).join(",\n") + "\n])\n";
+      copyToClipboard(numpyArrayString);
+    });
+    function getImageArray() {
+      let numpyArray = [];
+      for (let i = 0; i < 28; i++) {
+        let row = [];
+        for (let j = 0; j < 28; j++) {
+          let checkboxIndex = i * 28 + j;
+          row.push(checkboxes[checkboxIndex].checked ? 1 : 0);
+        }
+        numpyArray.push(row);
+      }
+      return numpyArray;
+    }
+  });
 })();
 /*! Bundled license information:
 
