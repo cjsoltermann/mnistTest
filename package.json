@@ -1,0 +1,17 @@
+{
+  "name": "machine-learning-stuff",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild index.ts --bundle --sourcemap --outfile=dist/main.js",
+    "serve": "esbuild index.ts --bundle --sourcemap --servedir=dist --outfile=dist/main.js"
+  },
+  "author": "Christian Soltermann",
+  "license": "ISC",
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.2.0",
+    "esbuild": "0.17.6"
+  }
+}
