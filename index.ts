@@ -1,5 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 
+// Safely gets an element using a query selector. Throws an error if element does not exist
 function getElement(id: string): HTMLElement {
     let element = document.querySelector(id);
     if (!element)
