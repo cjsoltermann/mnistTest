@@ -1,3 +1,4 @@
+"use strict";
 (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
@@ -51495,24 +51496,53 @@ return a / b;`;
   }
 
   // index.ts
-  loadLayersModel("./outputModel2/model.json").then((model2) => {
+  function loadElements() {
     let output = document.getElementById("output");
-    function showPredictions() {
-      let tensor2 = tensor(getImageArray()).reshape([1, 28, 28, 1]);
-      let result = model2.predict(tensor2).arraySync()[0];
-      let maxResult = Math.max(...result);
-      let resultString = result.map((n, i) => (n == maxResult ? "<b>" : "") + i + " : " + Number(n).toLocaleString(void 0, { style: "percent", minimumFractionDigits: 2 }) + (n == maxResult ? "</b>" : "")).join("      \r\n");
-      output.innerHTML = resultString;
+    if (!output) {
+      throw new Error("Cannot find output element");
     }
+    output = output;
+    let grid = document.querySelector(".grid");
+    if (!grid) {
+      throw new Error("Cannot find input grid");
+    }
+    grid = grid;
+    let clearBtn = document.getElementById("clear");
+    if (!clearBtn) {
+      throw new Error("Cannot find clear button");
+    }
+    clearBtn = clearBtn;
+    return [output, grid, clearBtn];
+  }
+  function getImageArray(checkboxes) {
+    let numpyArray = [];
+    for (let i = 0; i < 28; i++) {
+      let row = [];
+      for (let j = 0; j < 28; j++) {
+        let checkboxIndex = i * 28 + j;
+        row.push(checkboxes[checkboxIndex].checked ? 1 : 0);
+      }
+      numpyArray.push(row);
+    }
+    return numpyArray;
+  }
+  function showPredictions(model2, checkboxes, output) {
+    let tensor2 = tensor(getImageArray(checkboxes)).reshape([1, 28, 28, 1]);
+    let resultTensor = model2.predict(tensor2);
+    let result = resultTensor.arraySync()[0];
+    let maxResult = Math.max(...result);
+    let resultString = result.map((n, i) => (n == maxResult ? "<b>" : "") + i + " : " + Number(n).toLocaleString(void 0, { style: "percent", minimumFractionDigits: 2 }) + (n == maxResult ? "</b>" : "")).join("      \r\n");
+    output.innerHTML = resultString;
+  }
+  function createInputCheckboxes(grid, updateFunc) {
     let checkboxes = [];
-    document.querySelector(".grid").innerHTML = "";
+    grid.innerHTML = "";
     for (let i = 0; i < 28 * 28; i++) {
       let checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkboxes.push(checkbox);
-      document.querySelector(".grid").appendChild(checkbox);
+      grid.appendChild(checkbox);
     }
-    showPredictions();
     let isMouseDown = false;
     document.addEventListener("mousedown", function() {
       isMouseDown = true;
@@ -51528,43 +51558,26 @@ return a / b;`;
             checkboxes[i + 1].checked = true;
           if (i - 28 >= 0)
             checkboxes[i - 28].checked = true;
-          showPredictions();
+          updateFunc();
         }
       });
     }
-    let clearBtn = document.getElementById("clear");
-    clearBtn.addEventListener("click", () => {
-      for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = false;
-      }
-      showPredictions();
-    });
-    async function copyToClipboard(text) {
-      try {
-        await navigator.clipboard.writeText(text);
-        console.log("Text copied to clipboard");
-      } catch (err) {
-        console.error("Failed to copy text: ", err);
-      }
-    }
-    let exportBtn = document.getElementById("export");
-    exportBtn.addEventListener("click", () => {
-      let numpyArray = getImageArray();
-      let numpyArrayString = "np.array([\n" + numpyArray.map((row) => "  " + JSON.stringify(row)).join(",\n") + "\n])\n";
-      copyToClipboard(numpyArrayString);
-    });
-    function getImageArray() {
-      let numpyArray = [];
-      for (let i = 0; i < 28; i++) {
-        let row = [];
-        for (let j = 0; j < 28; j++) {
-          let checkboxIndex = i * 28 + j;
-          row.push(checkboxes[checkboxIndex].checked ? 1 : 0);
+    return checkboxes;
+  }
+  window.addEventListener("load", () => {
+    let [output, grid, clearBtn] = loadElements();
+    loadLayersModel("./outputModel2/model.json").then((model2) => {
+      let checkboxes = createInputCheckboxes(grid, () => {
+        showPredictions(model2, checkboxes, output);
+      });
+      showPredictions(model2, checkboxes, output);
+      clearBtn.addEventListener("click", () => {
+        for (let i = 0; i < checkboxes.length; i++) {
+          checkboxes[i].checked = false;
         }
-        numpyArray.push(row);
-      }
-      return numpyArray;
-    }
+        showPredictions(model2, checkboxes, output);
+      });
+    });
   });
 })();
 /*! Bundled license information:
