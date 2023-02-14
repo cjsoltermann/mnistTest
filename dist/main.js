@@ -51496,42 +51496,42 @@ return a / b;`;
   }
 
   // index.ts
+  function getElement(id) {
+    let element = document.querySelector(id);
+    if (!element)
+      throw new Error(`Cannot find element "${id}"`);
+    return element;
+  }
   function loadElements() {
-    let output = document.getElementById("output");
-    if (!output) {
-      throw new Error("Cannot find output element");
-    }
-    output = output;
-    let grid = document.querySelector(".grid");
-    if (!grid) {
-      throw new Error("Cannot find input grid");
-    }
-    grid = grid;
-    let clearBtn = document.getElementById("clear");
-    if (!clearBtn) {
-      throw new Error("Cannot find clear button");
-    }
-    clearBtn = clearBtn;
+    let output = getElement("#output");
+    let grid = getElement(".grid");
+    let clearBtn = getElement("#clear");
     return [output, grid, clearBtn];
   }
   function getImageArray(checkboxes) {
-    let numpyArray = [];
+    let array2 = [];
     for (let i = 0; i < 28; i++) {
       let row = [];
       for (let j = 0; j < 28; j++) {
         let checkboxIndex = i * 28 + j;
         row.push(checkboxes[checkboxIndex].checked ? 1 : 0);
       }
-      numpyArray.push(row);
+      array2.push(row);
     }
-    return numpyArray;
+    return array2;
   }
   function showPredictions(model2, checkboxes, output) {
-    let tensor2 = tensor(getImageArray(checkboxes)).reshape([1, 28, 28, 1]);
-    let resultTensor = model2.predict(tensor2);
-    let result = resultTensor.arraySync()[0];
-    let maxResult = Math.max(...result);
-    let resultString = result.map((n, i) => (n == maxResult ? "<b>" : "") + i + " : " + Number(n).toLocaleString(void 0, { style: "percent", minimumFractionDigits: 2 }) + (n == maxResult ? "</b>" : "")).join("      \r\n");
+    let inputTensor = tensor(getImageArray(checkboxes)).reshape([1, 28, 28, 1]);
+    let resultTensor = model2.predict(inputTensor);
+    let resultArray = resultTensor.arraySync()[0];
+    let maxResult = Math.max(...resultArray);
+    let resultString = resultArray.map((n, i) => {
+      let row = `${i} : ${n.toLocaleString(void 0, { style: "percent", maximumFractionDigits: 2 })}`;
+      if (n == maxResult) {
+        row = `<b>${row}</b>`;
+      }
+      return row;
+    }).join("      \r\n");
     output.innerHTML = resultString;
   }
   function createInputCheckboxes(grid, updateFunc) {
