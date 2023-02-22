@@ -18,26 +18,12 @@ function loadElements(): [HTMLElement, HTMLElement, HTMLElement, HTMLSelectEleme
     return [output, grid, clearBtn, select as HTMLSelectElement];
 }
 
-// Convert the array of checkbox elements into an array of 0's and 1's
-function checkboxesImageArray(checkboxes: HTMLInputElement[]) {
-    let array = [];
-    for (let i = 0; i < 28; i++) {
-        let row = [];
-        for (let j = 0; j < 28; j++) {
-            let checkboxIndex = i * 28 + j;
-            row.push(checkboxes[checkboxIndex].checked ? 1 : 0);
-        }
-        array.push(row);
-    }
-
-    return array;
-}
-
+// Convert a 2d array into a TensorFlow Tensor
 function getImageInputTensor(array: number[][]): tf.Tensor {
     return tf.tensor(array).reshape([1, 28, 28, 1]);
 }
 
-// Use the TensorFlow model to take the array of checkbox elements and output predictions
+// Use the TensorFlow model to take a 2d array and output predictions
 function showPredictions(model: tf.LayersModel, imgArray: number[][], output: HTMLElement) {
     // Get and shape input
     let inputTensor = getImageInputTensor(imgArray);
@@ -53,7 +39,7 @@ function showPredictions(model: tf.LayersModel, imgArray: number[][], output: HT
 
     // Create a string that will be displayed to user
     let resultString = resultArray.map((n, i) => {
-        let row = `${i} : ${n.toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 2 })}`
+        let row: string = `${i} : ${n.toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 2 })}`
 
         if (n == maxResult) {
             row = `<b>${row}</b>`
@@ -109,12 +95,7 @@ function createInputCanvas(grid: HTMLElement, updateFunc: () => void): [HTMLCanv
         if (!drawing) return;
         var x = e.clientX - canvas.offsetLeft;
         var y = e.clientY - canvas.offsetTop;
-        // ctx.beginPath();
-        // ctx.moveTo(lastX, lastY);
-        // ctx.lineTo(x, y);
-        // ctx.strokeStyle = "black";
-        // ctx.lineWidth = 8;
-        // ctx.stroke();
+
         auxCtx.beginPath();
 
         function lerp(start: number, end: number, progress: number) {
@@ -168,46 +149,6 @@ function canvasImageArray(canvas: HTMLCanvasElement): number[][] {
     return pixelArray;
 }
 
-// Create the 28x28 array of checkboxes and setup mouse input
-function createInputCheckboxes(grid: HTMLElement, updateFunc: () => void) {
-
-    // Create the 28x28 checkboxes
-    let checkboxes: HTMLInputElement[] = [];
-    grid.innerHTML = "";
-    for (let i = 0; i < 28 * 28; i++) {
-        let checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkboxes.push(checkbox);
-        grid.appendChild(checkbox);
-    }
-
-    // Events for keeping track of mouse state
-    let isMouseDown = false;
-    document.addEventListener('mousedown', function () {
-        isMouseDown = true;
-    });
-    document.addEventListener('mouseup', function () {
-        isMouseDown = false;
-    });
-
-    // Add a mouse event to each checkbox. On mouseover each checkbox will enable both itself and some neighbors.
-    // updateFunc is the callback that will be called when any checkbox's state is changed
-    for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].addEventListener('mouseover', function () {
-            if (isMouseDown) {
-                this.checked = true;
-                if (i + 1 < 28 * 28)
-                    checkboxes[i + 1].checked = true;
-                if (i - 28 >= 0)
-                    checkboxes[i - 28].checked = true;
-                updateFunc();
-            }
-        });
-    }
-
-    return checkboxes;
-}
-
 function createModelOptions(selection_element: HTMLSelectElement, options: string[], updateFunc: (selection: string) => void) {
     for (const option of options) {
         let option_element = document.createElement("option");
@@ -218,12 +159,6 @@ function createModelOptions(selection_element: HTMLSelectElement, options: strin
     selection_element.addEventListener("change", () => {
         updateFunc(selection_element.value);
     });
-}
-
-function allowCheckboxes(checkboxes: HTMLInputElement[], allow: boolean) {
-    for (const checkbox of checkboxes) {
-        checkbox.disabled = !allow;
-    }
 }
 
 function getModelPath(model: string) {
@@ -248,9 +183,8 @@ window.addEventListener('load', async () => {
 
     // Create model selection options and callback
     createModelOptions(select, modelStrings, async (newModel) => {
-        //allowCheckboxes(checkboxes, false);
+        //TODO Signify that model is loading
         model = await tf.loadLayersModel(getModelPath(newModel));
-        //allowCheckboxes(checkboxes, true);
         showPredictions(model, canvasImageArray(canvas), output);
     });
 
@@ -264,7 +198,6 @@ window.addEventListener('load', async () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         auxCtx.clearRect(0, 0, auxCanvas.width, auxCanvas.height);
         showPredictions(model, canvasImageArray(canvas), output);
-        // showPredictions(model, checkboxesImageArray(checkboxes), output);
     })
 
 
