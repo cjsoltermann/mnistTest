@@ -51506,7 +51506,8 @@ return a / b;`;
     let output = getElement("#output");
     let grid = getElement(".grid");
     let clearBtn = getElement("#clear");
-    return [output, grid, clearBtn];
+    let select4 = getElement("#select");
+    return [output, grid, clearBtn, select4];
   }
   function getImageArray(checkboxes) {
     let array2 = [];
@@ -51564,19 +51565,43 @@ return a / b;`;
     }
     return checkboxes;
   }
-  window.addEventListener("load", () => {
-    let [output, grid, clearBtn] = loadElements();
-    loadLayersModel("./outputModel2/model.json").then((model2) => {
-      let checkboxes = createInputCheckboxes(grid, () => {
-        showPredictions(model2, checkboxes, output);
-      });
+  function createModelOptions(selection_element, options, updateFunc) {
+    for (const option of options) {
+      let option_element = document.createElement("option");
+      option_element.text = option;
+      selection_element.add(option_element);
+    }
+    selection_element.addEventListener("change", () => {
+      updateFunc(selection_element.value);
+    });
+  }
+  function allowCheckboxes(checkboxes, allow) {
+    for (const checkbox of checkboxes) {
+      checkbox.disabled = !allow;
+    }
+  }
+  function getModelPath(model2) {
+    return "./" + model2 + "/model.json";
+  }
+  window.addEventListener("load", async () => {
+    let [output, grid, clearBtn, select4] = loadElements();
+    let modelStrings = ["mnistModel", "outputModel2", "outputModel3", "outputModel4"];
+    let model2 = await loadLayersModel(getModelPath(modelStrings[0]));
+    let checkboxes = createInputCheckboxes(grid, () => {
       showPredictions(model2, checkboxes, output);
-      clearBtn.addEventListener("click", () => {
-        for (let i = 0; i < checkboxes.length; i++) {
-          checkboxes[i].checked = false;
-        }
-        showPredictions(model2, checkboxes, output);
-      });
+    });
+    createModelOptions(select4, modelStrings, async (newModel) => {
+      allowCheckboxes(checkboxes, false);
+      model2 = await loadLayersModel(getModelPath(newModel));
+      allowCheckboxes(checkboxes, true);
+      showPredictions(model2, checkboxes, output);
+    });
+    showPredictions(model2, checkboxes, output);
+    clearBtn.addEventListener("click", () => {
+      for (let i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+      }
+      showPredictions(model2, checkboxes, output);
     });
   });
 })();

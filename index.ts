@@ -9,12 +9,13 @@ function getElement(id: string): HTMLElement {
 }
 
 // Make sure all necessary HTML elements are present and acquire them
-function loadElements(): [HTMLElement, HTMLElement, HTMLElement] {
+function loadElements(): [HTMLElement, HTMLElement, HTMLElement, HTMLSelectElement] {
     let output = getElement("#output")
     let grid = getElement(".grid")
     let clearBtn = getElement("#clear")
+    let select = getElement('#select')
 
-    return [output, grid, clearBtn];
+    return [output, grid, clearBtn, select as HTMLSelectElement];
 }
 
 // Convert the array of checkbox elements into an array of 0's and 1's
@@ -100,34 +101,64 @@ function createInputCheckboxes(grid: HTMLElement, updateFunc: () => void) {
     return checkboxes;
 }
 
+function createModelOptions(selection_element: HTMLSelectElement, options: string[], updateFunc: (selection: string) => void) {
+    for (const option of options) {
+        let option_element = document.createElement("option");
+        option_element.text = option;
+        selection_element.add(option_element);
+    }
+
+    selection_element.addEventListener("change", () => {
+        updateFunc(selection_element.value);
+    });
+}
+
+function allowCheckboxes(checkboxes: HTMLInputElement[], allow: boolean) {
+    for (const checkbox of checkboxes) {
+        checkbox.disabled = !allow;
+    }
+}
+
+function getModelPath(model: string) {
+    return './' + model + '/model.json';
+}
+
 // Main function
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
 
     // Get HTML elements
-    let [output, grid, clearBtn] = loadElements();
+    let [output, grid, clearBtn, select] = loadElements();
 
-    // Load model from filesystem.
-    tf.loadLayersModel('./outputModel2/model.json').then((model) => {
+    let modelStrings = ["mnistModel", "outputModel2", "outputModel3", "outputModel4"];
 
-        // Create checkbox elements
-        let checkboxes = createInputCheckboxes(grid, () => {
-            showPredictions(model, checkboxes, output);
-        });
+    // Load initial model from filesystem
+    let model = await tf.loadLayersModel(getModelPath(modelStrings[0]));
 
-        // Create initial predictions to get the model "warmed up"
-        // (The first prediction of the model is significantly slower. I'm guessing that it doesn't fully load until the first prediction is made)
+    // Create checkbox elements
+    let checkboxes = createInputCheckboxes(grid, () => {
         showPredictions(model, checkboxes, output);
-
-
-        // Clear button functionality
-        clearBtn.addEventListener('click', () => {
-            for (let i = 0; i < checkboxes.length; i++) {
-                checkboxes[i].checked = false;
-            }
-            showPredictions(model, checkboxes, output);
-        })
-
     });
+
+    // Create model selection options and callback
+    createModelOptions(select, modelStrings, async (newModel) => {
+        allowCheckboxes(checkboxes, false);
+        model = await tf.loadLayersModel(getModelPath(newModel));
+        allowCheckboxes(checkboxes, true);
+        showPredictions(model, checkboxes, output);
+    });
+
+    // Create initial predictions to get the model "warmed up"
+    // (The first prediction of the model is significantly slower. I'm guessing that it doesn't fully load until the first prediction is made)
+    showPredictions(model, checkboxes, output);
+
+
+    // Clear button functionality
+    clearBtn.addEventListener('click', () => {
+        for (let i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = false;
+        }
+        showPredictions(model, checkboxes, output);
+    })
 
 
 })
