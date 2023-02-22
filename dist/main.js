@@ -51509,7 +51509,7 @@ return a / b;`;
     let select4 = getElement("#select");
     return [output, grid, clearBtn, select4];
   }
-  function getImageArray(checkboxes) {
+  function checkboxesImageArray(checkboxes) {
     let array2 = [];
     for (let i = 0; i < 28; i++) {
       let row = [];
@@ -51521,8 +51521,11 @@ return a / b;`;
     }
     return array2;
   }
-  function showPredictions(model2, checkboxes, output) {
-    let inputTensor = tensor(getImageArray(checkboxes)).reshape([1, 28, 28, 1]);
+  function getImageInputTensor(array2) {
+    return tensor(array2).reshape([1, 28, 28, 1]);
+  }
+  function showPredictions(model2, imgArray, output) {
+    let inputTensor = getImageInputTensor(imgArray);
     let resultTensor = model2.predict(inputTensor);
     let resultArray = resultTensor.arraySync()[0];
     let maxResult = Math.max(...resultArray);
@@ -51588,20 +51591,20 @@ return a / b;`;
     let modelStrings = ["mnistModel", "outputModel2", "outputModel3", "outputModel4"];
     let model2 = await loadLayersModel(getModelPath(modelStrings[0]));
     let checkboxes = createInputCheckboxes(grid, () => {
-      showPredictions(model2, checkboxes, output);
+      showPredictions(model2, checkboxesImageArray(checkboxes), output);
     });
     createModelOptions(select4, modelStrings, async (newModel) => {
       allowCheckboxes(checkboxes, false);
       model2 = await loadLayersModel(getModelPath(newModel));
       allowCheckboxes(checkboxes, true);
-      showPredictions(model2, checkboxes, output);
+      showPredictions(model2, checkboxesImageArray(checkboxes), output);
     });
-    showPredictions(model2, checkboxes, output);
+    showPredictions(model2, checkboxesImageArray(checkboxes), output);
     clearBtn.addEventListener("click", () => {
       for (let i = 0; i < checkboxes.length; i++) {
         checkboxes[i].checked = false;
       }
-      showPredictions(model2, checkboxes, output);
+      showPredictions(model2, checkboxesImageArray(checkboxes), output);
     });
   });
 })();

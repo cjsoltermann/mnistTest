@@ -19,7 +19,7 @@ function loadElements(): [HTMLElement, HTMLElement, HTMLElement, HTMLSelectEleme
 }
 
 // Convert the array of checkbox elements into an array of 0's and 1's
-function getImageArray(checkboxes: HTMLInputElement[]) {
+function checkboxesImageArray(checkboxes: HTMLInputElement[]) {
     let array = [];
     for (let i = 0; i < 28; i++) {
         let row = [];
@@ -33,10 +33,14 @@ function getImageArray(checkboxes: HTMLInputElement[]) {
     return array;
 }
 
+function getImageInputTensor(array: number[][]): tf.Tensor {
+    return tf.tensor(array).reshape([1, 28, 28, 1]);
+}
+
 // Use the TensorFlow model to take the array of checkbox elements and output predictions
-function showPredictions(model: tf.LayersModel, checkboxes: HTMLInputElement[], output: HTMLElement) {
+function showPredictions(model: tf.LayersModel, imgArray: number[][], output: HTMLElement) {
     // Get and shape input
-    let inputTensor = tf.tensor(getImageArray(checkboxes)).reshape([1, 28, 28, 1]);
+    let inputTensor = getImageInputTensor(imgArray);
 
     // Get result Tensor
     let resultTensor = model.predict(inputTensor) as tf.Tensor;
@@ -136,7 +140,7 @@ window.addEventListener('load', async () => {
 
     // Create checkbox elements
     let checkboxes = createInputCheckboxes(grid, () => {
-        showPredictions(model, checkboxes, output);
+        showPredictions(model, checkboxesImageArray(checkboxes), output);
     });
 
     // Create model selection options and callback
@@ -144,12 +148,12 @@ window.addEventListener('load', async () => {
         allowCheckboxes(checkboxes, false);
         model = await tf.loadLayersModel(getModelPath(newModel));
         allowCheckboxes(checkboxes, true);
-        showPredictions(model, checkboxes, output);
+        showPredictions(model, checkboxesImageArray(checkboxes), output);
     });
 
     // Create initial predictions to get the model "warmed up"
     // (The first prediction of the model is significantly slower. I'm guessing that it doesn't fully load until the first prediction is made)
-    showPredictions(model, checkboxes, output);
+    showPredictions(model, checkboxesImageArray(checkboxes), output);
 
 
     // Clear button functionality
@@ -157,7 +161,7 @@ window.addEventListener('load', async () => {
         for (let i = 0; i < checkboxes.length; i++) {
             checkboxes[i].checked = false;
         }
-        showPredictions(model, checkboxes, output);
+        showPredictions(model, checkboxesImageArray(checkboxes), output);
     })
 
 
