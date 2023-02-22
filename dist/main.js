@@ -51611,8 +51611,12 @@ return a / b;`;
       showPredictions(model2, canvasImageArray(canvas), output);
     });
     createModelOptions(select4, modelStrings, async (newModel) => {
+      canvas.style.filter = "opacity(50%)";
+      canvas.style.pointerEvents = "none";
       model2 = await loadLayersModel(getModelPath(newModel));
       showPredictions(model2, canvasImageArray(canvas), output);
+      canvas.style.filter = "none";
+      canvas.style.pointerEvents = "auto";
     });
     showPredictions(model2, canvasImageArray(canvas), output);
     clearBtn.addEventListener("click", () => {

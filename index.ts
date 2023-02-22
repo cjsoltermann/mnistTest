@@ -184,8 +184,12 @@ window.addEventListener('load', async () => {
     // Create model selection options and callback
     createModelOptions(select, modelStrings, async (newModel) => {
         //TODO Signify that model is loading
+        canvas.style.filter = "opacity(50%)";
+        canvas.style.pointerEvents = "none";
         model = await tf.loadLayersModel(getModelPath(newModel));
         showPredictions(model, canvasImageArray(canvas), output);
+        canvas.style.filter = "none";
+        canvas.style.pointerEvents = "auto";
     });
 
     // Create initial predictions to get the model "warmed up"
