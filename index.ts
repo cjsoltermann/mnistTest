@@ -65,6 +65,107 @@ function showPredictions(model: tf.LayersModel, imgArray: number[][], output: HT
     output.innerHTML = resultString;
 }
 
+function createInputCanvas(grid: HTMLElement, updateFunc: () => void): [HTMLCanvasElement, CanvasRenderingContext2D] {
+    grid.innerHTML = "";
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d')!;
+
+    canvas.style.border = "1px solid black";
+
+    canvas.width = 280;
+    canvas.height = 280;
+
+    grid.appendChild(canvas);
+
+    // Set up some variables
+    var drawing = false;
+    var lastX: number;
+    var lastY: number;
+
+    // Add event listeners for mouse events
+    canvas.addEventListener("mousedown", start);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stop);
+    canvas.addEventListener("mouseout", stop);
+
+    // Function to start drawing
+    function start(e: MouseEvent) {
+        drawing = true;
+        lastX = e.clientX - canvas.offsetLeft;
+        lastY = e.clientY - canvas.offsetTop;
+    }
+
+    // Function to draw
+    function draw(e: MouseEvent) {
+        if (!drawing) return;
+        var x = e.clientX - canvas.offsetLeft;
+        var y = e.clientY - canvas.offsetTop;
+        // ctx.beginPath();
+        // ctx.moveTo(lastX, lastY);
+        // ctx.lineTo(x, y);
+        // ctx.strokeStyle = "black";
+        // ctx.lineWidth = 8;
+        // ctx.stroke();
+        ctx.beginPath();
+
+        function lerp(start: number, end: number, progress: number) {
+            return start + (end - start) * progress;
+        }
+
+        // Tried using squared norm to save computation. Made page crash 
+        let frames = Math.floor(Math.hypot(x - lastX, y - lastY));
+
+        for (let i = 0; i < frames; i += 1) {
+            ctx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), 10, 10, 0, 0, Math.PI * 2);
+        }
+
+        ctx.fill();
+
+
+        lastX = x;
+        lastY = y;
+
+        updateFunc();
+    }
+
+    // Function to stop drawing
+    function stop() {
+        drawing = false;
+    }
+
+    return [canvas, ctx];
+}
+
+function canvasImageArray(canvas: HTMLCanvasElement): number[][] {
+
+    // Create a new canvas element with a 28x28 size
+    const resizedCanvas = document.createElement("canvas");
+    resizedCanvas.width = 28;
+    resizedCanvas.height = 28;
+
+    // Get the context of the new canvas
+    const resizedCtx = resizedCanvas.getContext("2d")!;
+
+    // Draw the original canvas onto the new canvas, scaled down to 28x28
+    resizedCtx.drawImage(canvas, 0, 0, 28, 28);
+
+    // Get the pixel data of the new canvas
+    const pixelData = resizedCtx.getImageData(0, 0, 28, 28).data;
+
+    // Create a 28x28 array to hold the pixel values
+    const pixelArray = new Array(28).fill(0).map(() => new Array(28).fill(0));
+
+    // Loop through the pixel data and populate the array with grayscale values
+    for (let i = 0; i < pixelData.length; i += 4) {
+        const grayValue = pixelData[i + 3] / 255;
+        const x = Math.floor((i / 4) % 28);
+        const y = Math.floor(i / 4 / 28);
+        pixelArray[y][x] = grayValue;
+    }
+
+    return pixelArray;
+}
+
 // Create the 28x28 array of checkboxes and setup mouse input
 function createInputCheckboxes(grid: HTMLElement, updateFunc: () => void) {
 
@@ -138,30 +239,28 @@ window.addEventListener('load', async () => {
     // Load initial model from filesystem
     let model = await tf.loadLayersModel(getModelPath(modelStrings[0]));
 
-    // Create checkbox elements
-    let checkboxes = createInputCheckboxes(grid, () => {
-        showPredictions(model, checkboxesImageArray(checkboxes), output);
-    });
+    // Create canvas element
+    let [canvas, ctx] = createInputCanvas(grid, () => {
+        showPredictions(model, canvasImageArray(canvas), output);
+    })
 
     // Create model selection options and callback
     createModelOptions(select, modelStrings, async (newModel) => {
-        allowCheckboxes(checkboxes, false);
+        //allowCheckboxes(checkboxes, false);
         model = await tf.loadLayersModel(getModelPath(newModel));
-        allowCheckboxes(checkboxes, true);
-        showPredictions(model, checkboxesImageArray(checkboxes), output);
+        //allowCheckboxes(checkboxes, true);
+        showPredictions(model, canvasImageArray(canvas), output);
     });
 
     // Create initial predictions to get the model "warmed up"
     // (The first prediction of the model is significantly slower. I'm guessing that it doesn't fully load until the first prediction is made)
-    showPredictions(model, checkboxesImageArray(checkboxes), output);
+    showPredictions(model, canvasImageArray(canvas), output);
 
 
     // Clear button functionality
     clearBtn.addEventListener('click', () => {
-        for (let i = 0; i < checkboxes.length; i++) {
-            checkboxes[i].checked = false;
-        }
-        showPredictions(model, checkboxesImageArray(checkboxes), output);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // showPredictions(model, checkboxesImageArray(checkboxes), output);
     })
 
 

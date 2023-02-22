@@ -51509,18 +51509,6 @@ return a / b;`;
     let select4 = getElement("#select");
     return [output, grid, clearBtn, select4];
   }
-  function checkboxesImageArray(checkboxes) {
-    let array2 = [];
-    for (let i = 0; i < 28; i++) {
-      let row = [];
-      for (let j = 0; j < 28; j++) {
-        let checkboxIndex = i * 28 + j;
-        row.push(checkboxes[checkboxIndex].checked ? 1 : 0);
-      }
-      array2.push(row);
-    }
-    return array2;
-  }
   function getImageInputTensor(array2) {
     return tensor(array2).reshape([1, 28, 28, 1]);
   }
@@ -51538,35 +51526,64 @@ return a / b;`;
     }).join("      \r\n");
     output.innerHTML = resultString;
   }
-  function createInputCheckboxes(grid, updateFunc) {
-    let checkboxes = [];
+  function createInputCanvas(grid, updateFunc) {
     grid.innerHTML = "";
-    for (let i = 0; i < 28 * 28; i++) {
-      let checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkboxes.push(checkbox);
-      grid.appendChild(checkbox);
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext("2d");
+    canvas.style.border = "1px solid black";
+    canvas.width = 280;
+    canvas.height = 280;
+    grid.appendChild(canvas);
+    var drawing = false;
+    var lastX;
+    var lastY;
+    canvas.addEventListener("mousedown", start);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stop);
+    canvas.addEventListener("mouseout", stop);
+    function start(e) {
+      drawing = true;
+      lastX = e.clientX - canvas.offsetLeft;
+      lastY = e.clientY - canvas.offsetTop;
     }
-    let isMouseDown = false;
-    document.addEventListener("mousedown", function() {
-      isMouseDown = true;
-    });
-    document.addEventListener("mouseup", function() {
-      isMouseDown = false;
-    });
-    for (let i = 0; i < checkboxes.length; i++) {
-      checkboxes[i].addEventListener("mouseover", function() {
-        if (isMouseDown) {
-          this.checked = true;
-          if (i + 1 < 28 * 28)
-            checkboxes[i + 1].checked = true;
-          if (i - 28 >= 0)
-            checkboxes[i - 28].checked = true;
-          updateFunc();
-        }
-      });
+    function draw(e) {
+      if (!drawing)
+        return;
+      var x = e.clientX - canvas.offsetLeft;
+      var y = e.clientY - canvas.offsetTop;
+      ctx.beginPath();
+      function lerp(start2, end, progress) {
+        return start2 + (end - start2) * progress;
+      }
+      let frames = Math.floor(Math.hypot(x - lastX, y - lastY));
+      for (let i = 0; i < frames; i += 1) {
+        ctx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), 10, 10, 0, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      lastX = x;
+      lastY = y;
+      updateFunc();
     }
-    return checkboxes;
+    function stop() {
+      drawing = false;
+    }
+    return [canvas, ctx];
+  }
+  function canvasImageArray(canvas) {
+    const resizedCanvas = document.createElement("canvas");
+    resizedCanvas.width = 28;
+    resizedCanvas.height = 28;
+    const resizedCtx = resizedCanvas.getContext("2d");
+    resizedCtx.drawImage(canvas, 0, 0, 28, 28);
+    const pixelData = resizedCtx.getImageData(0, 0, 28, 28).data;
+    const pixelArray = new Array(28).fill(0).map(() => new Array(28).fill(0));
+    for (let i = 0; i < pixelData.length; i += 4) {
+      const grayValue = pixelData[i + 3] / 255;
+      const x = Math.floor(i / 4 % 28);
+      const y = Math.floor(i / 4 / 28);
+      pixelArray[y][x] = grayValue;
+    }
+    return pixelArray;
   }
   function createModelOptions(selection_element, options, updateFunc) {
     for (const option of options) {
@@ -51578,11 +51595,6 @@ return a / b;`;
       updateFunc(selection_element.value);
     });
   }
-  function allowCheckboxes(checkboxes, allow) {
-    for (const checkbox of checkboxes) {
-      checkbox.disabled = !allow;
-    }
-  }
   function getModelPath(model2) {
     return "./" + model2 + "/model.json";
   }
@@ -51590,21 +51602,16 @@ return a / b;`;
     let [output, grid, clearBtn, select4] = loadElements();
     let modelStrings = ["mnistModel", "outputModel2", "outputModel3", "outputModel4"];
     let model2 = await loadLayersModel(getModelPath(modelStrings[0]));
-    let checkboxes = createInputCheckboxes(grid, () => {
-      showPredictions(model2, checkboxesImageArray(checkboxes), output);
+    let [canvas, ctx] = createInputCanvas(grid, () => {
+      showPredictions(model2, canvasImageArray(canvas), output);
     });
     createModelOptions(select4, modelStrings, async (newModel) => {
-      allowCheckboxes(checkboxes, false);
       model2 = await loadLayersModel(getModelPath(newModel));
-      allowCheckboxes(checkboxes, true);
-      showPredictions(model2, checkboxesImageArray(checkboxes), output);
+      showPredictions(model2, canvasImageArray(canvas), output);
     });
-    showPredictions(model2, checkboxesImageArray(checkboxes), output);
+    showPredictions(model2, canvasImageArray(canvas), output);
     clearBtn.addEventListener("click", () => {
-      for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = false;
-      }
-      showPredictions(model2, checkboxesImageArray(checkboxes), output);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
   });
 })();
