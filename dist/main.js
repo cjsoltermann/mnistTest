@@ -51530,9 +51530,16 @@ return a / b;`;
     grid.innerHTML = "";
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext("2d");
+    let auxCanvas = document.createElement("canvas");
+    let auxCtx = auxCanvas.getContext("2d");
     canvas.style.border = "1px solid black";
-    canvas.width = 280;
-    canvas.height = 280;
+    canvas.style.imageRendering = "crisp-edges";
+    canvas.width = 28;
+    canvas.height = 28;
+    canvas.style.width = "280px";
+    canvas.style.height = "280px";
+    auxCanvas.width = 280;
+    auxCanvas.height = 280;
     grid.appendChild(canvas);
     var drawing = false;
     var lastX;
@@ -51551,15 +51558,17 @@ return a / b;`;
         return;
       var x = e.clientX - canvas.offsetLeft;
       var y = e.clientY - canvas.offsetTop;
-      ctx.beginPath();
+      auxCtx.beginPath();
       function lerp(start2, end, progress) {
         return start2 + (end - start2) * progress;
       }
       let frames = Math.floor(Math.hypot(x - lastX, y - lastY));
       for (let i = 0; i < frames; i += 1) {
-        ctx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), 10, 10, 0, 0, Math.PI * 2);
+        auxCtx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), 10, 10, 0, 0, Math.PI * 2);
       }
-      ctx.fill();
+      auxCtx.fill();
+      ctx.clearRect(0, 0, 28, 28);
+      ctx.drawImage(auxCanvas, 0, 0, 28, 28);
       lastX = x;
       lastY = y;
       updateFunc();
@@ -51567,15 +51576,11 @@ return a / b;`;
     function stop() {
       drawing = false;
     }
-    return [canvas, ctx];
+    return [canvas, ctx, auxCanvas, auxCtx];
   }
   function canvasImageArray(canvas) {
-    const resizedCanvas = document.createElement("canvas");
-    resizedCanvas.width = 28;
-    resizedCanvas.height = 28;
-    const resizedCtx = resizedCanvas.getContext("2d");
-    resizedCtx.drawImage(canvas, 0, 0, 28, 28);
-    const pixelData = resizedCtx.getImageData(0, 0, 28, 28).data;
+    let ctx = canvas.getContext("2d");
+    const pixelData = ctx.getImageData(0, 0, 28, 28).data;
     const pixelArray = new Array(28).fill(0).map(() => new Array(28).fill(0));
     for (let i = 0; i < pixelData.length; i += 4) {
       const grayValue = pixelData[i + 3] / 255;
@@ -51602,7 +51607,7 @@ return a / b;`;
     let [output, grid, clearBtn, select4] = loadElements();
     let modelStrings = ["mnistModel", "outputModel2", "outputModel3", "outputModel4"];
     let model2 = await loadLayersModel(getModelPath(modelStrings[0]));
-    let [canvas, ctx] = createInputCanvas(grid, () => {
+    let [canvas, ctx, auxCanvas, auxCtx] = createInputCanvas(grid, () => {
       showPredictions(model2, canvasImageArray(canvas), output);
     });
     createModelOptions(select4, modelStrings, async (newModel) => {
@@ -51612,6 +51617,8 @@ return a / b;`;
     showPredictions(model2, canvasImageArray(canvas), output);
     clearBtn.addEventListener("click", () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      auxCtx.clearRect(0, 0, auxCanvas.width, auxCanvas.height);
+      showPredictions(model2, canvasImageArray(canvas), output);
     });
   });
 })();
