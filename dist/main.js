@@ -51605,7 +51605,7 @@ return a / b;`;
   }
   window.addEventListener("load", async () => {
     let [output, grid, clearBtn, select4] = loadElements();
-    let modelStrings = ["mnistModel", "outputModel2", "outputModel3", "outputModel4"];
+    let modelStrings = ["miniModel", "mnistModel", "outputModel2", "outputModel3", "outputModel4"];
     let model2 = await loadLayersModel(getModelPath(modelStrings[0]));
     let [canvas, ctx, auxCanvas, auxCtx] = createInputCanvas(grid, () => {
       showPredictions(model2, canvasImageArray(canvas), output);

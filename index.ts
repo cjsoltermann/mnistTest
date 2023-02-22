@@ -236,7 +236,7 @@ window.addEventListener('load', async () => {
     // Get HTML elements
     let [output, grid, clearBtn, select] = loadElements();
 
-    let modelStrings = ["mnistModel", "outputModel2", "outputModel3", "outputModel4"];
+    let modelStrings = ["miniModel", "mnistModel", "outputModel2", "outputModel3", "outputModel4"];
 
     // Load initial model from filesystem
     let model = await tf.loadLayersModel(getModelPath(modelStrings[0]));
