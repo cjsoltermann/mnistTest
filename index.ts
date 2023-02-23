@@ -9,13 +9,14 @@ function getElement(id: string): HTMLElement {
 }
 
 // Make sure all necessary HTML elements are present and acquire them
-function loadElements(): [HTMLElement, HTMLElement, HTMLElement, HTMLSelectElement] {
+function loadElements(): [HTMLElement, HTMLElement, HTMLElement, HTMLSelectElement, HTMLInputElement] {
     let output = getElement("#output")
     let grid = getElement(".grid")
     let clearBtn = getElement("#clear")
     let select = getElement('#select')
+    let slider = getElement('#brush-slider')
 
-    return [output, grid, clearBtn, select as HTMLSelectElement];
+    return [output, grid, clearBtn, select as HTMLSelectElement, slider as HTMLInputElement];
 }
 
 // Convert a 2d array into a TensorFlow Tensor
@@ -51,7 +52,7 @@ function showPredictions(model: tf.LayersModel, imgArray: number[][], output: HT
     output.innerHTML = resultString;
 }
 
-function createInputCanvas(grid: HTMLElement, updateFunc: () => void): [HTMLCanvasElement, CanvasRenderingContext2D, HTMLCanvasElement, CanvasRenderingContext2D] {
+function createInputCanvas(grid: HTMLElement, updateFunc: () => void, brushSize: () => number): [HTMLCanvasElement, CanvasRenderingContext2D, HTMLCanvasElement, CanvasRenderingContext2D] {
     grid.innerHTML = "";
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d')!;
@@ -105,8 +106,10 @@ function createInputCanvas(grid: HTMLElement, updateFunc: () => void): [HTMLCanv
         // Tried using squared norm to save computation. Made page crash 
         let frames = Math.floor(Math.hypot(x - lastX, y - lastY));
 
+        let brush = brushSize();
+
         for (let i = 0; i < frames; i += 1) {
-            auxCtx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), 10, 10, 0, 0, Math.PI * 2);
+            auxCtx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), brush, brush, 0, 0, Math.PI * 2);
         }
 
         auxCtx.fill();
@@ -169,17 +172,23 @@ function getModelPath(model: string) {
 window.addEventListener('load', async () => {
 
     // Get HTML elements
-    let [output, grid, clearBtn, select] = loadElements();
+    let [output, grid, clearBtn, select, slider] = loadElements();
 
     let modelStrings = ["miniModel", "mnistModel", "outputModel2", "outputModel3", "outputModel4"];
 
     // Load initial model from filesystem
     let model = await tf.loadLayersModel(getModelPath(modelStrings[0]));
 
+    let brushSize = 10;
+
     // Create canvas element
     let [canvas, ctx, auxCanvas, auxCtx] = createInputCanvas(grid, () => {
         showPredictions(model, canvasImageArray(canvas), output);
-    })
+    },
+        () => {
+            // This is ugly. TODO: refactor
+            return brushSize;
+        })
 
     // Create model selection options and callback
     createModelOptions(select, modelStrings, async (newModel) => {
@@ -202,6 +211,11 @@ window.addEventListener('load', async () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         auxCtx.clearRect(0, 0, auxCanvas.width, auxCanvas.height);
         showPredictions(model, canvasImageArray(canvas), output);
+    })
+
+    // Brush Slider
+    slider.addEventListener('input', () => {
+        brushSize = +slider.value;
     })
 
 

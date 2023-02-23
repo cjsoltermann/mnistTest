@@ -51507,7 +51507,8 @@ return a / b;`;
     let grid = getElement(".grid");
     let clearBtn = getElement("#clear");
     let select4 = getElement("#select");
-    return [output, grid, clearBtn, select4];
+    let slider = getElement("#brush-slider");
+    return [output, grid, clearBtn, select4, slider];
   }
   function getImageInputTensor(array2) {
     return tensor(array2).reshape([1, 28, 28, 1]);
@@ -51526,7 +51527,7 @@ return a / b;`;
     }).join("      \r\n");
     output.innerHTML = resultString;
   }
-  function createInputCanvas(grid, updateFunc) {
+  function createInputCanvas(grid, updateFunc, brushSize) {
     grid.innerHTML = "";
     let canvas = document.createElement("canvas");
     let ctx = canvas.getContext("2d");
@@ -51563,8 +51564,9 @@ return a / b;`;
         return start2 + (end - start2) * progress;
       }
       let frames = Math.floor(Math.hypot(x - lastX, y - lastY));
+      let brush = brushSize();
       for (let i = 0; i < frames; i += 1) {
-        auxCtx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), 10, 10, 0, 0, Math.PI * 2);
+        auxCtx.ellipse(lerp(lastX, x, i / frames), lerp(lastY, y, i / frames), brush, brush, 0, 0, Math.PI * 2);
       }
       auxCtx.fill();
       ctx.clearRect(0, 0, 28, 28);
@@ -51604,12 +51606,19 @@ return a / b;`;
     return "./" + model2 + "/model.json";
   }
   window.addEventListener("load", async () => {
-    let [output, grid, clearBtn, select4] = loadElements();
+    let [output, grid, clearBtn, select4, slider] = loadElements();
     let modelStrings = ["miniModel", "mnistModel", "outputModel2", "outputModel3", "outputModel4"];
     let model2 = await loadLayersModel(getModelPath(modelStrings[0]));
-    let [canvas, ctx, auxCanvas, auxCtx] = createInputCanvas(grid, () => {
-      showPredictions(model2, canvasImageArray(canvas), output);
-    });
+    let brushSize = 10;
+    let [canvas, ctx, auxCanvas, auxCtx] = createInputCanvas(
+      grid,
+      () => {
+        showPredictions(model2, canvasImageArray(canvas), output);
+      },
+      () => {
+        return brushSize;
+      }
+    );
     createModelOptions(select4, modelStrings, async (newModel) => {
       canvas.style.filter = "opacity(50%)";
       canvas.style.pointerEvents = "none";
@@ -51623,6 +51632,9 @@ return a / b;`;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       auxCtx.clearRect(0, 0, auxCanvas.width, auxCanvas.height);
       showPredictions(model2, canvasImageArray(canvas), output);
+    });
+    slider.addEventListener("input", () => {
+      brushSize = +slider.value;
     });
   });
 })();

@@ -3,30 +3,35 @@
 <head>
     <style>
         .grid {
-            display: grid;
-            grid-template-columns: repeat(28, 1fr);
-            grid-gap: 0;
             margin: 0;
             padding: 0;
             width: 0;
-        }
-
-        input[type="checkbox"] {
-            margin: 0;
-            padding: 0;
         }
 
         #output {
             white-space: pre;
             margin: 0;
         }
+
+        #brush-label,
+        #brush-slider {
+            vertical-align: middle;
+        }
     </style>
 </head>
 
 <body>
     <!-- <button id="export">Export</button> -->
-    <select id="select"></select>
-    <button id="clear">Clear</button>
+    <div id="controls">
+        <div>
+            <select id="select"></select>
+            <button id="clear">Clear</button>
+        </div>
+        <div>
+            <label id="brush-label" for="brush-size">Brush Size</label>
+            <input type="range" id="brush-slider" name="brush-size" min=1 max=15 value=10>
+        </div>
+    </div>
     <div class="grid">
         <p>Loading...</p>
     </div>
