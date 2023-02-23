@@ -52,6 +52,7 @@ function showPredictions(model: tf.LayersModel, imgArray: number[][], output: HT
     output.innerHTML = resultString;
 }
 
+// Creates two canvas for input. One main canvas that is 28x28 pixels and is presented to user and one auxillary canvas that handles smooth drawing.
 function createInputCanvas(grid: HTMLElement, updateFunc: () => void, brushSize: () => number): [HTMLCanvasElement, CanvasRenderingContext2D, HTMLCanvasElement, CanvasRenderingContext2D] {
     grid.innerHTML = "";
     let canvas = document.createElement('canvas');
@@ -131,6 +132,7 @@ function createInputCanvas(grid: HTMLElement, updateFunc: () => void, brushSize:
     return [canvas, ctx, auxCanvas, auxCtx];
 }
 
+// Converts a canvas into a 28x28 array
 function canvasImageArray(canvas: HTMLCanvasElement): number[][] {
 
     let ctx = canvas.getContext('2d')!;
@@ -152,6 +154,7 @@ function canvasImageArray(canvas: HTMLCanvasElement): number[][] {
     return pixelArray;
 }
 
+// Creates the list of models shown in the selection input
 function createModelOptions(selection_element: HTMLSelectElement, options: string[], updateFunc: (selection: string) => void) {
     for (const option of options) {
         let option_element = document.createElement("option");
@@ -192,7 +195,6 @@ window.addEventListener('load', async () => {
 
     // Create model selection options and callback
     createModelOptions(select, modelStrings, async (newModel) => {
-        //TODO Signify that model is loading
         canvas.style.filter = "opacity(50%)";
         canvas.style.pointerEvents = "none";
         model = await tf.loadLayersModel(getModelPath(newModel));
