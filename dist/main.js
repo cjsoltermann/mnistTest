@@ -51530,6 +51530,7 @@ return a / b;`;
   function createInputCanvas(grid, updateFunc, brushSize) {
     grid.innerHTML = "";
     let canvas = document.createElement("canvas");
+    canvas.classList.add("pixels");
     let ctx = canvas.getContext("2d");
     let auxCanvas = document.createElement("canvas");
     let auxCtx = auxCanvas.getContext("2d");
@@ -51605,33 +51606,74 @@ return a / b;`;
   function getModelPath(model2) {
     return "./" + model2 + "/model.json";
   }
+  function update(model2, canvas, output, featureCanvases) {
+    showPredictions(model2, canvasImageArray(canvas), output);
+    let featureTensor = model2.getLayer(void 0, 1).apply(getImageInputTensor(canvasImageArray(canvas)));
+    let features = featureTensor.slice([0, 0, 0, 0], [1, 26, 26, 8]).transpose([0, 3, 1, 2]).arraySync();
+    for (let f = 0; f < featureCanvases.length; f++) {
+      let feature = features[0][f];
+      let canvas2 = featureCanvases[f];
+      let ctx = canvas2.getContext("2d");
+      const imageData = new ImageData(26, 26);
+      const data = imageData.data;
+      for (let i = 0; i < 26 * 26; i++) {
+        const value = feature[Math.floor(i / 26)][i % 26];
+        const color = Math.round(value * 255);
+        const index = i * 4;
+        data[index] = 0;
+        data[index + 1] = 0;
+        data[index + 2] = 0;
+        data[index + 3] = color;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+  }
+  function createFeatureCanvases(grid) {
+    let featureGrid = document.createElement("div");
+    featureGrid.className = "feature-grid";
+    grid.appendChild(featureGrid);
+    let ret = [];
+    for (let i = 0; i < 8; i++) {
+      let c = document.createElement("canvas");
+      c.classList.add("pixels");
+      c.classList.add("feature-canvas");
+      c.width = 26;
+      c.height = 26;
+      c.style.imageRendering = "crisp-edges";
+      featureGrid.appendChild(c);
+      ret.push(c);
+    }
+    return ret;
+  }
   window.addEventListener("load", async () => {
     let [output, grid, clearBtn, select4, slider] = loadElements();
     let modelStrings = ["miniModel", "mnistModel", "outputModel2", "outputModel3", "outputModel4"];
     let model2 = await loadLayersModel(getModelPath(modelStrings[0]));
     let brushSize = 10;
+    let featureCanvases = [];
     let [canvas, ctx, auxCanvas, auxCtx] = createInputCanvas(
       grid,
       () => {
-        showPredictions(model2, canvasImageArray(canvas), output);
+        update(model2, canvas, output, featureCanvases);
       },
       () => {
         return brushSize;
       }
     );
+    featureCanvases = createFeatureCanvases(grid);
     createModelOptions(select4, modelStrings, async (newModel) => {
       canvas.style.filter = "opacity(50%)";
       canvas.style.pointerEvents = "none";
       model2 = await loadLayersModel(getModelPath(newModel));
-      showPredictions(model2, canvasImageArray(canvas), output);
+      update(model2, canvas, output, featureCanvases);
       canvas.style.filter = "none";
       canvas.style.pointerEvents = "auto";
     });
-    showPredictions(model2, canvasImageArray(canvas), output);
+    update(model2, canvas, output, featureCanvases);
     clearBtn.addEventListener("click", () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       auxCtx.clearRect(0, 0, auxCanvas.width, auxCanvas.height);
-      showPredictions(model2, canvasImageArray(canvas), output);
+      update(model2, canvas, output, featureCanvases);
     });
     slider.addEventListener("input", () => {
       brushSize = +slider.value;
