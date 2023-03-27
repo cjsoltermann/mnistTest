@@ -2,10 +2,22 @@
 
 <head>
     <style>
-        .grid {
-            margin: 0;
-            padding: 0;
-            width: 0;
+        .grid {}
+
+        .feature-grid {
+            display: inline grid;
+            grid-template-columns: 140px 140px 140px 140px;
+            grid-template-rows: 140px 140px;
+            vertical-align: top;
+        }
+
+        .feature-canvas {
+            width: 130px;
+            height: 130px;
+        }
+
+        .pixels {
+            image-rendering: pixelated;
         }
 
         #output {
@@ -21,7 +33,6 @@
 </head>
 
 <body>
-    <!-- <button id="export">Export</button> -->
     <div id="controls">
         <div>
             <select id="select"></select>

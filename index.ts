@@ -56,6 +56,7 @@ function showPredictions(model: tf.LayersModel, imgArray: number[][], output: HT
 function createInputCanvas(grid: HTMLElement, updateFunc: () => void, brushSize: () => number): [HTMLCanvasElement, CanvasRenderingContext2D, HTMLCanvasElement, CanvasRenderingContext2D] {
     grid.innerHTML = "";
     let canvas = document.createElement('canvas');
+    canvas.classList.add('pixels');
     let ctx = canvas.getContext('2d')!;
 
     let auxCanvas = document.createElement('canvas');
@@ -171,6 +172,56 @@ function getModelPath(model: string) {
     return './' + model + '/model.json';
 }
 
+function update(model: tf.LayersModel, canvas: HTMLCanvasElement, output: HTMLElement, featureCanvases: HTMLCanvasElement[]) {
+    showPredictions(model, canvasImageArray(canvas), output);
+    let featureTensor = model.getLayer(undefined, 1).apply(getImageInputTensor(canvasImageArray(canvas))) as tf.Tensor;
+    let features = (featureTensor.slice([0, 0, 0, 0], [1, 26, 26, 8]).transpose([0, 3, 1, 2]).arraySync() as number[][][][])
+
+    for (let f = 0; f < featureCanvases.length; f++) {
+
+
+        let feature = features[0][f];
+        let canvas = featureCanvases[f];
+        let ctx = canvas.getContext('2d')!;
+
+        const imageData = new ImageData(26, 26)
+        const data = imageData.data;
+
+        for (let i = 0; i < 26 * 26; i++) {
+            const value = feature[Math.floor(i / 26)][i % 26];
+            const color = Math.round(value * 255);
+            const index = i * 4;
+            data[index] = 0;
+            data[index + 1] = 0;
+            data[index + 2] = 0;
+            data[index + 3] = color;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+}
+
+function createFeatureCanvases(grid: HTMLElement): HTMLCanvasElement[] {
+    let featureGrid = document.createElement('div');
+    featureGrid.className = 'feature-grid';
+    grid.appendChild(featureGrid);
+
+    let ret: HTMLCanvasElement[] = [];
+
+    for (let i = 0; i < 8; i++) {
+        let c = document.createElement('canvas');
+        c.classList.add('pixels');
+        c.classList.add('feature-canvas');
+        c.width = 26;
+        c.height = 26;
+        c.style.imageRendering = "crisp-edges";
+        featureGrid.appendChild(c);
+        ret.push(c);
+    }
+    return ret;
+}
+
 // Main function
 window.addEventListener('load', async () => {
 
@@ -184,35 +235,39 @@ window.addEventListener('load', async () => {
 
     let brushSize = 10;
 
+    let featureCanvases: HTMLCanvasElement[] = [];
+
     // Create canvas element
     let [canvas, ctx, auxCanvas, auxCtx] = createInputCanvas(grid, () => {
-        showPredictions(model, canvasImageArray(canvas), output);
+        update(model, canvas, output, featureCanvases);
     },
         () => {
             // This is ugly. TODO: refactor
             return brushSize;
         })
 
+    featureCanvases = createFeatureCanvases(grid);
+
     // Create model selection options and callback
     createModelOptions(select, modelStrings, async (newModel) => {
         canvas.style.filter = "opacity(50%)";
         canvas.style.pointerEvents = "none";
         model = await tf.loadLayersModel(getModelPath(newModel));
-        showPredictions(model, canvasImageArray(canvas), output);
+        update(model, canvas, output, featureCanvases);
         canvas.style.filter = "none";
         canvas.style.pointerEvents = "auto";
     });
 
     // Create initial predictions to get the model "warmed up"
     // (The first prediction of the model is significantly slower. I'm guessing that it doesn't fully load until the first prediction is made)
-    showPredictions(model, canvasImageArray(canvas), output);
+    update(model, canvas, output, featureCanvases);
 
 
     // Clear button functionality
     clearBtn.addEventListener('click', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         auxCtx.clearRect(0, 0, auxCanvas.width, auxCanvas.height);
-        showPredictions(model, canvasImageArray(canvas), output);
+        update(model, canvas, output, featureCanvases);
     })
 
     // Brush Slider
